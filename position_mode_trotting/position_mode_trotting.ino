@@ -188,6 +188,7 @@ void setup() {
 }
 
 void loop() {
+  /*
   // put your main code here, to run repeatedly:
   long elapsed = millis() - start;
   if (elapsed - last_time > timestep)
@@ -207,5 +208,5 @@ void loop() {
     }
     last_time = elapsed;
   }
-
+  */
 }
