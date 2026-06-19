@@ -4,8 +4,8 @@ clc
 
 % Experimental conditions
 Phase_String = ["Con" "Des" "0" "2" "No"]; % 5 phases
-Trial_String = ["T1" "T2" "T3"];            % 3 trials per phase
-Terrain_String = ["Rigid" "Granular"];         % 2 terrains
+Trial_String = ["T1" "T2" "T3"]; % 3 trials per phase
+Terrain_String = ["Rigid" "Granular"]; % 2 terrains
 nP = length(Phase_String);
 nT = length(Trial_String);
 nTerrain = length(Terrain_String);
@@ -222,7 +222,7 @@ for k = 1:nTerrain
             plot(tt, squeeze(rear_x_clipped(k,i,j,:)), 'r')
             plot(tt, squeeze(rear_y_clipped(k,i,j,:)), 'g')
             plot(tt, squeeze(rear_z_clipped(k,i,j,:)), 'b')
-            plot(tt, squeeze(rear_dist(k,i,j,:)), 'Color', [0.6 0.6 0.6], 'LineWidth', 1.5)
+            plot(tt, squeeze(rear_dist(k,i,j,:)), 'Color', 'k')
             title(Phase_String(i) + " " + Trial_String(j))
             ylabel('distance / m')
             xlabel('time / s')
@@ -250,7 +250,7 @@ for k = 1:nTerrain
             plot(tt, squeeze(front_x_clipped(k,i,j,:)), 'r')
             plot(tt, squeeze(front_y_clipped(k,i,j,:)), 'g')
             plot(tt, squeeze(front_z_clipped(k,i,j,:)), 'b')
-            plot(tt, squeeze(front_dist(k,i,j,:)), 'Color', [0.6 0.6 0.6], 'LineWidth', 1.5)
+            plot(tt, squeeze(front_dist(k,i,j,:)), 'Color', 'k')
             title(Phase_String(i) + " " + Trial_String(j))
             ylabel('distance / m')
             xlabel('time / s')
@@ -267,7 +267,7 @@ end
 smooth_window = 30;
 all_steps_rear = cell(nTerrain, nP); % collect all individual steps across trials
 all_steps_front = cell(nTerrain, nP);
-all_steps  = cell(nTerrain, nP);
+all_steps = cell(nTerrain, nP);
 avg_step = zeros(nTerrain, nP, nT); % per-trial average for display
 
 for k = 1:nTerrain
@@ -280,7 +280,7 @@ for k = 1:nTerrain
 
             rear_dist_smooth = movmean(squeeze(rear_dist(k,i,j,:)), smooth_window);
             front_dist_smooth = movmean(squeeze(front_dist(k,i,j,:)), smooth_window);
-            rear_deriv  = diff(rear_dist_smooth)  * 120;
+            rear_deriv = diff(rear_dist_smooth)  * 120;
             front_deriv = diff(front_dist_smooth) * 120;
 
             % Find peaks in derivative
@@ -288,7 +288,7 @@ for k = 1:nTerrain
             [~, front_locs] = findpeaks(front_deriv, 'MinPeakDistance', 80, 'MinPeakProminence', 0.008);
 
             % Individual step lengths for this trial
-            rear_steps  = diff(rear_dist_smooth(rear_locs));
+            rear_steps = diff(rear_dist_smooth(rear_locs));
             front_steps = diff(front_dist_smooth(front_locs));
 
             % Append raw steps to pool for this phase
@@ -317,7 +317,7 @@ for k = 1:nTerrain
     end
 end
 
-%% Bar graph of average step length per phase (one figure per terrain)
+%% Plot of average step length per phase (one figure per terrain)
 for k = 1:nTerrain
     avg_step_per_phase = zeros(nP, 1);
     std_step_per_phase = zeros(nP, 1);
@@ -329,11 +329,15 @@ for k = 1:nTerrain
     end
 
     figure
-    bar(avg_step_per_phase * 100)
     hold on
-    errorbar(1:nP, avg_step_per_phase * 100, std_step_per_phase * 100, 'k.', 'LineWidth', 1.5) %errorbar( x_coord, center, upper-lower-extension,...)
+    errorbar(1:nP, avg_step_per_phase * 100, std_step_per_phase * 100, 'b.', 'LineWidth', 1.5)
+    plot(1:nP, avg_step_per_phase * 100, 'o','MarkerEdgeColor', 'b', 'LineWidth', 1.5, 'MarkerFaceColor', 'w')
+    xlim([0.5, nP+0.5]) % force full x range
+    xticks(1:nP)
     xticklabels(Phase_String)
-    xlabel('Phase')
+    xlabel('Coordination Type')
     ylabel('Step Length (cm)')
     title(Terrain_String(k) + " Average Step Length by Phase")
+    ylim([0 11])
 end
+disp(avg_step_per_phase * 100)
