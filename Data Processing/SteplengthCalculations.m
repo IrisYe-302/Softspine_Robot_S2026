@@ -1,0 +1,265 @@
+%% Parse Data from CSVs
+clear
+clc
+data_folder = "June23_Data";
+nT = 3; % 3 trials
+% Preallocate vectors (terrain x phase x trial x datapoints)
+t = zeros(nT, 8000);
+marker1_x = zeros(nT, 8000); % don't expect more than 8000 frames
+marker1_y = zeros(nT, 8000);
+marker1_z = zeros(nT, 8000);
+marker2_x = zeros(nT, 8000);
+marker2_y = zeros(nT, 8000);
+marker2_z = zeros(nT, 8000);
+Length = zeros(nT);
+% Column offsets (1-indexed, readmatrix auto-skips headers)
+t_col = 2;  % Time is in column B
+rear_marker_offset = 44;  % Rear marker1 starts at column AU... marker2 positions follow straight after
+for i = 1:nT
+% Build filename
+    string = "pronk" + i;
+    filename = fullfile(data_folder, string + ".csv");
+% Read CSV — readmatrix() automatically skips header rows
+    M = readmatrix(filename);
+    [L, ~] = size(M);
+    Length(i) = L;
+% Extract time
+    t(i, 1:L) = M(:, t_col);
+% Extract rear marker positions
+    marker1_x(i, 1:L) = M(:, 0+rear_marker_offset);  % Column AR
+    marker1_y(i, 1:L) = M(:, 1+rear_marker_offset);  % Column AS
+    marker1_z(i, 1:L) = M(:, 2+rear_marker_offset);  % Column AT
+% Extract front marker positions
+    marker2_x(i, 1:L) = M(:, 3+rear_marker_offset); % Column AU
+    marker2_y(i, 1:L) = M(:, 4+rear_marker_offset); % Column AV
+    marker2_z(i, 1:L) = M(:, 5+rear_marker_offset); % Column AW
+end
+
+%% Compute Velocities
+marker1_Vx = zeros(nT, 8000);
+marker2_Vx = zeros(nT, 8000);
+for i = 1:nT
+    for m = 1:Length(i)-1
+        marker1_Vx(i,m) = marker1_x(i,m+1) - marker1_x(i,m);
+        marker2_Vx(i,m) = marker2_x(i,m+1) - marker2_x(i,m);
+    end
+end
+% Multiply by frame rate to convert from position-change-per-frame to m/s
+marker1_Vx = marker1_Vx * 120; % 120Hz frame rate
+marker2_Vx = marker2_Vx * 120;
+
+%% Compute full (unclipped) distance — needed for peak-based start detection
+marker1_dist_full = zeros(nT, 8000);
+for i = 1:nT
+    marker1_dist_full(i,:) = sqrt(marker1_x(i,:).^2 + marker1_y(i,:).^2 + marker1_z(i,:).^2);
+end
+
+%% Start-Detection: skip first bound, start at second
+smooth_window_start = [125 110 110]; % one value per trial — tune individually
+start = ones(nT, 1);
+
+for i = 1:nT
+    dist_smooth = movmean(marker1_dist_full(i,:), smooth_window_start(i));
+    deriv = diff(dist_smooth) * 120;
+    [~, locs] = findpeaks(deriv, 'MinPeakDistance', 150, 'MinPeakProminence', 0.05);
+
+    disp("Pronk " + i + " peak locations: " + mat2str(locs))
+
+    if length(locs) >= 2
+        start(i) = locs(2) - 50; % back up a bit before the second peak
+    elseif ~isempty(locs)
+        start(i) = locs(1) - 50;
+    end
+end
+
+disp(start)
+%% End detection — 5 pronks after start
+n_bounds_wanted = 5;
+end_frame = zeros(nT, 1);
+
+for i = 1:nT
+    dist_smooth = movmean(marker1_dist_full(i,:), smooth_window_start(i));
+    deriv = diff(dist_smooth) * 120;
+    [~, locs] = findpeaks(deriv, 'MinPeakDistance', 150, 'MinPeakProminence', 0.05);
+
+    % Find peaks that occur after start
+    locs_after_start = locs(locs > start(i));
+
+    if length(locs_after_start) >= n_bounds_wanted
+        end_frame(i) = locs_after_start(n_bounds_wanted) + 50; % buffer past 5th bound
+    else
+        end_frame(i) = Length(i); % fallback if fewer than 5 found
+    end
+end
+
+disp(end_frame)
+
+%% Plot Start and End Detection results against distance (run for checking)
+figure
+for i = 1:nT
+    dist_zeroed = marker1_dist_full(i,:) - marker1_dist_full(i, start(i));
+    window_range = start(i) : min(Length(i), end_frame(i)+200);
+    subplot(1, nT, i)
+    plot(window_range, dist_zeroed(window_range))
+    hold on
+    xline(start(i), 'r', 'LineWidth', 2)
+    xline(end_frame(i), 'r', 'LineWidth', 2)
+    title("Pronk " + i)
+    ylabel('marker1 distance from start (m)')
+    xlabel('frame')
+    hold off
+end
+sgtitle("Start and End Detection vs Distance")
+
+%% Clip data
+clip_length = min(end_frame - start) + 1; % use shortest trial so all match
+
+marker1_x_clipped = zeros(nT, clip_length);
+marker1_y_clipped = zeros(nT, clip_length);
+marker1_z_clipped = zeros(nT, clip_length);
+marker2_x_clipped = zeros(nT, clip_length);
+marker2_y_clipped = zeros(nT, clip_length);
+marker2_z_clipped = zeros(nT, clip_length);
+t_clipped         = zeros(nT, clip_length);
+
+for i = 1:nT
+    s = start(i);
+
+    % Clip to fixed window starting at detected start frame
+    marker1_x_clipped(i,:) = marker1_x(i, s:s+clip_length-1);
+    marker1_y_clipped(i,:) = marker1_y(i, s:s+clip_length-1);
+    marker1_z_clipped(i,:) = marker1_z(i, s:s+clip_length-1);
+    marker2_x_clipped(i,:) = marker2_x(i, s:s+clip_length-1);
+    marker2_y_clipped(i,:) = marker2_y(i, s:s+clip_length-1);
+    marker2_z_clipped(i,:) = marker2_z(i, s:s+clip_length-1);
+    t_clipped(i,:)         = t(i, s:s+clip_length-1);
+
+    % Zero-reference to the start position
+    marker1_x_clipped(i,:) = marker1_x_clipped(i,:) - marker1_x_clipped(i,1);
+    marker1_y_clipped(i,:) = marker1_y_clipped(i,:) - marker1_y_clipped(i,1);
+    marker1_z_clipped(i,:) = marker1_z_clipped(i,:) - marker1_z_clipped(i,1);
+    marker2_x_clipped(i,:) = marker2_x_clipped(i,:) - marker2_x_clipped(i,1);
+    marker2_y_clipped(i,:) = marker2_y_clipped(i,:) - marker2_y_clipped(i,1);
+    marker2_z_clipped(i,:) = marker2_z_clipped(i,:) - marker2_z_clipped(i,1);
+    t_clipped(i,:)         = t_clipped(i,:) - t_clipped(i,1);
+end
+
+%% Calculate total 3D distance
+marker1_dist = zeros(nT, clip_length);
+marker2_dist = zeros(nT, clip_length);
+
+for i = 1:nT
+    marker1_dist(i,:) = sqrt(marker1_x_clipped(i,:).^2 + marker1_y_clipped(i,:).^2 + marker1_z_clipped(i,:).^2);
+    marker2_dist(i,:) = sqrt(marker2_x_clipped(i,:).^2 + marker2_y_clipped(i,:).^2 + marker2_z_clipped(i,:).^2);
+end
+
+%% Plot marker1 displacement (x, y, z) and total distance
+figure
+for i = 1:nT
+    subplot(1, nT, i)
+    hold on
+    tt = t_clipped(i,:);
+    %plot(tt, marker1_x_clipped(i,:), 'r')
+    plot(tt, marker1_y_clipped(i,:), 'k')
+    %plot(tt, marker1_z_clipped(i,:), 'b')
+    %plot(tt, marker1_dist(i,:), 'Color', [0.6 0.6 0.6], 'LineWidth', 1.5)
+    title("Pronk " + i)
+    ylabel('distance / m')
+    xlabel('time / s')
+    %xlim([2.3 3])
+    hold off
+end
+sgtitle("Marker 1 Displacement vs. Time")
+lgd = legend('X', 'Y', 'Z', 'total dist', 'Orientation', 'horizontal');
+lgd.Units = 'normalized';
+lgd.Position = [0.4, 0.04, 0.2, 0.02];
+
+%% Plot marker2 displacement (x, y, z) and total distance
+figure
+for i = 1:nT
+    subplot(1, nT, i)
+    hold on
+    tt = t_clipped(i,:);
+    plot(tt, marker2_x_clipped(i,:), 'r')
+    plot(tt, marker2_y_clipped(i,:), 'g')
+    plot(tt, marker2_z_clipped(i,:), 'b')
+    plot(tt, marker2_dist(i,:), 'Color', [0.6 0.6 0.6], 'LineWidth', 1.5)
+    title("Pronk " + i)
+    ylabel('distance / m')
+    xlabel('time / s')
+    hold off
+end
+sgtitle("Marker 2 Displacement vs. Time")
+lgd = legend('X', 'Y', 'Z', 'total dist', 'Orientation', 'horizontal');
+lgd.Units = 'normalized';
+lgd.Position = [0.4, 0.04, 0.2, 0.02];
+
+%% Vertical displacement (Y) per pronk — marker1 and marker2 averaged
+smooth_window_y = 30;
+all_y_range_marker1 = cell(nT, 1);
+all_y_range_marker2 = cell(nT, 1);
+all_y_range         = cell(nT, 1); % combined pool per trial
+avg_y_range         = NaN(nT, 1);  % per-trial average for display
+
+for i = 1:nT
+    % Find bound boundaries using the same x-distance derivative peaks
+    dist_smooth = movmean(marker1_dist(i,:), smooth_window_y);
+    deriv = diff(dist_smooth) * 120;
+    [~, locs] = findpeaks(deriv, 'MinPeakDistance', 150, 'MinPeakProminence', 0.05);
+
+    y1_smooth = movmean(marker1_y_clipped(i,:), smooth_window_y);
+    y2_smooth = movmean(marker2_y_clipped(i,:), smooth_window_y);
+
+    y1_ranges = zeros(length(locs)-1, 1);
+    y2_ranges = zeros(length(locs)-1, 1);
+    for b = 1:length(locs)-1
+        seg1 = y1_smooth(locs(b):locs(b+1));
+        seg2 = y2_smooth(locs(b):locs(b+1));
+        y1_ranges(b) = max(seg1) - min(seg1); % vertical bounce height for marker1
+        y2_ranges(b) = max(seg2) - min(seg2); % vertical bounce height for marker2
+    end
+
+    all_y_range_marker1{i} = y1_ranges;
+    all_y_range_marker2{i} = y2_ranges;
+    all_y_range{i}         = [y1_ranges; y2_ranges]; % pool both markers together
+
+    avg_y_range(i) = mean(all_y_range{i});
+end
+
+% Display results
+disp('Average vertical displacement per pronk cycle (marker1 & marker2 averaged):')
+for i = 1:nT
+    disp("Pronk trial " + i + ": " + round(avg_y_range(i)*100, 2) + " cm")
+end
+
+%% Pooled average across all trials
+all_y_ranges_pooled = [];
+for i = 1:nT
+    all_y_ranges_pooled = [all_y_ranges_pooled; all_y_range{i}];
+end
+
+avg_y_overall = mean(all_y_ranges_pooled);
+std_y_overall = std(all_y_ranges_pooled);
+
+disp("Overall average vertical bounce height: " + round(avg_y_overall*100, 2) + " cm ± " + round(std_y_overall*100, 2) + " cm")
+%% Pooled average across all trials
+all_y_ranges_pooled = [];
+for i = 1:nT
+    all_y_ranges_pooled = [all_y_ranges_pooled; all_y_range_marker1{i}];
+end
+
+avg_y_overall = mean(all_y_ranges_pooled);
+std_y_overall = std(all_y_ranges_pooled);
+
+disp("Overall average vertical pronk height: " + round(avg_y_overall*100, 2) + " cm ± " + round(std_y_overall*100, 2) + " cm")
+%% Constant variables
+h = 1.75; % cm
+D = 7.5; % cm
+R = D/2;
+d = D-h-avg_y_overall*100;
+
+disp("Penetration depth: " + d + " cm")
+%% Formula check
+s = 2*sqrt((R)^2-(d+h-R)^2);
+disp("Step length calculation using formula: " + s + " cm") % expected ~5 cm
+%%

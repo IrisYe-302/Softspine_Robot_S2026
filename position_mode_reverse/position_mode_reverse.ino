@@ -40,12 +40,12 @@ long start, last_time, timestep;
 float motor_rpm = 16;
 int total_legs=4; //number of legs
 uint8_t IDs[]={1,2,3,4,5,6};
-int directions[]={1,-1,-1,1};
+int directions[]={-1,1,1,-1};
 int leg_offset[]={0,90,-90,90};
 int gait[]={0,180,0,180}; // diagonally alternating
 
 float cycle_period = 2; // in seconds... syncs legs with spine
-float spine_timing_offset = cycle_period*(3.0/4.0); // T/4 for left front leg down & spine arching left (destructive), 3T/4 for left front leg down and spine arching right (constructive)
+float spine_timing_offset = cycle_period*(1.0/4.0); // T/4 for left front leg down & spine arching left (constructive backwards), 3T/4 for left front leg down and spine arching right (des backwards)
 float spine_magnitude = 106, spine_center = 160;
 float servo6_timing_offset = -cycle_period*0.01;
 
@@ -59,7 +59,7 @@ float degree_slow_end; //in deg, the slow phase starting position, if degree_slo
 //Buehler clock timing parameters to change directly
 //ϕ_s = 100 deg, ϕ_0= 90 deg, duty_cycle = 0.75
 float phi_s=100; //in deg, ϕ_s is the angular extent of the slow phase
-float phi_0=50; //in deg, ϕ_0 is the center of the slow phase in degrees
+float phi_0=-50; //in deg, ϕ_0 is the center of the slow phase in degrees
 float duty_cycle =0.9;//d_c is the duty cycle of the slow phase (i.e. fraction of the period spent in the slow phase). 
 
 float spine_center_offset[] = {-10, 10}; // adjust centers independently // neg
@@ -151,13 +151,20 @@ void setup() {
   for (int i=0; i<total_legs; i++){
     dxl.ping(IDs[i]);
   }
-  // Set op mode to normal op_position first for all to reset positions
-  for (int i=0;i<6;i++){
+  // Set op mode to extended op_position for legs
+  for (int i=4;i<6;i++){
     dxl.torqueOff(IDs[i]);
     dxl.setOperatingMode(IDs[i], OP_POSITION);
     dxl.torqueOn(IDs[i]);
     delay(100);
   } 
+   // Change each leg servo mode to extended operating mode
+  for (int i=0;i<total_legs;i++){
+    dxl.torqueOff(IDs[i]);
+    dxl.setOperatingMode(IDs[i], OP_EXTENDED_POSITION);
+    dxl.torqueOn(IDs[i]);
+    delay(100);
+  }
 
   // Reset each leg motor to zero position
   for (int i=0; i<total_legs; i++){
@@ -173,14 +180,6 @@ void setup() {
 
    delay(2000);
 
-  // Change each leg servo mode to extended operating mode
-  for (int i=0;i<total_legs;i++){
-    dxl.torqueOff(IDs[i]);
-    dxl.setOperatingMode(IDs[i], OP_EXTENDED_POSITION);
-    dxl.torqueOn(IDs[i]);
-    delay(100);
-  }
-
   start = millis();
   timestep = 50;
   clock_init(); // for Buehler
@@ -188,7 +187,7 @@ void setup() {
 }
 
 void loop() {
-  
+
   long elapsed = millis() - start;
   if (elapsed - last_time > timestep)
   {
@@ -207,4 +206,5 @@ void loop() {
     }
     last_time = elapsed;
   }
+
 }

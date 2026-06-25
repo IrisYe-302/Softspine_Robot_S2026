@@ -219,10 +219,10 @@ for k = 1:nTerrain
             end
             hold on
             tt = squeeze(t_clipped(k,i,j,:));
-            plot(tt, squeeze(rear_x_clipped(k,i,j,:)), 'r')
+            %plot(tt, squeeze(rear_x_clipped(k,i,j,:)), 'r')
             plot(tt, squeeze(rear_y_clipped(k,i,j,:)), 'g')
-            plot(tt, squeeze(rear_z_clipped(k,i,j,:)), 'b')
-            plot(tt, squeeze(rear_dist(k,i,j,:)), 'Color', 'k')
+            %plot(tt, squeeze(rear_z_clipped(k,i,j,:)), 'b')
+            %plot(tt, squeeze(rear_dist(k,i,j,:)), 'Color', 'k')
             title(Phase_String(i) + " " + Trial_String(j))
             ylabel('distance / m')
             xlabel('time / s')
@@ -340,4 +340,87 @@ for k = 1:nTerrain
     title(Terrain_String(k) + " Average Step Length by Phase")
     ylim([0 11])
 end
-disp(avg_step_per_phase * 100)
+disp(round(avg_step_per_phase * 100,2) + " ± " + round(std_step_per_phase*100,2) + " cm")
+
+%% Vertical displacement (Y) per step — rear and front averaged (Granular, No-spine only)
+smooth_window_y = 30;
+k = 2; % Granular terrain only — no penetration depth concept on rigid ground
+i = 5; % "No" phase — no spine
+
+all_y_range_rear  = [];
+all_y_range_front = [];
+all_y_range        = []; % combined pool
+avg_y_range        = NaN(nT, 1); % per-trial average for display
+
+for j = 1:nT
+    if ~file_loaded(k,i,j), continue, end
+
+    % Find step boundaries using the same x-distance derivative peaks
+    dist_smooth = movmean(squeeze(rear_dist(k,i,j,:)), smooth_window_y);
+    deriv = diff(dist_smooth) * 120;
+    [~, locs] = findpeaks(deriv, 'MinPeakDistance', 80, 'MinPeakProminence', 0.008);
+
+    if length(locs) < 2, continue, end % need at least 2 peaks to form a segment
+
+    y_rear_smooth  = movmean(squeeze(rear_y_clipped(k,i,j,:)),  smooth_window_y);
+    y_front_smooth = movmean(squeeze(front_y_clipped(k,i,j,:)), smooth_window_y);
+
+    y_rear_ranges  = zeros(length(locs)-1, 1);
+    y_front_ranges = zeros(length(locs)-1, 1);
+    for b = 1:length(locs)-1
+        seg_rear  = y_rear_smooth(locs(b):locs(b+1));
+        seg_front = y_front_smooth(locs(b):locs(b+1));
+        y_rear_ranges(b)  = max(seg_rear)  - min(seg_rear);  % vertical bounce height, rear
+        y_front_ranges(b) = max(seg_front) - min(seg_front); % vertical bounce height, front
+    end
+
+    all_y_range_rear  = [all_y_range_rear;  y_rear_ranges];
+    all_y_range_front = [all_y_range_front; y_front_ranges];
+    all_y_range        = [all_y_range; y_rear_ranges; y_front_ranges]; % pool both markers
+
+    avg_y_range(j) = (mean(y_rear_ranges) + mean(y_front_ranges)) / 2;
+end
+
+% Display results per trial
+disp('Average vertical displacement per step (Granular, No-spine, rear & front averaged):')
+for j = 1:nT
+    if ~file_loaded(k,i,j)
+        disp(Trial_String(j) + ": missing")
+        continue
+    end
+    disp(Trial_String(j) + ": " + round(avg_y_range(j)*100, 2) + " cm")
+end
+
+%% Pooled average across all trials (Granular, No-spine)
+avg_y_overall = mean(all_y_range);
+std_y_overall = std(all_y_range);
+
+disp("Overall average vertical bounce height (Granular, No-spine): " + round(avg_y_overall*100, 2) + " cm ± " + round(std_y_overall*100, 2) + " cm")
+
+%% Constant variables (penetration depth model — Granular, No-spine)
+h = 1.75; % cm
+D = 7.5;  % cm
+R = D/2;
+
+d = D - h - avg_y_overall*100;
+s = 2*sqrt((R)^2 - (d+h-R)^2);
+
+disp("Penetration depth: " + round(d,2) + " cm")
+
+%% Error propagation for modeled step length (using std, not SEM)
+delta = 1e-6; % small step for numerical derivative
+
+y_plus  = avg_y_overall + delta;
+y_minus = avg_y_overall - delta;
+
+d_plus  = D - h - y_plus*100;
+d_minus = D - h - y_minus*100;
+
+s_plus  = 2*sqrt((R)^2 - (d_plus+h-R)^2);
+s_minus = 2*sqrt((R)^2 - (d_minus+h-R)^2);
+
+ds_dy = (s_plus - s_minus) / (2*delta); % numerical derivative
+
+std_s = abs(ds_dy) * std_y_overall; % propagated uncertainty in step length
+
+disp("Modeled step length: " + round(s,2) + " ± " + round(std_s,2) + " cm")
