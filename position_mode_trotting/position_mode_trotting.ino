@@ -62,7 +62,7 @@ float phi_s=100; //in deg, ϕ_s is the angular extent of the slow phase
 float phi_0=50; //in deg, ϕ_0 is the center of the slow phase in degrees
 float duty_cycle =0.9;//d_c is the duty cycle of the slow phase (i.e. fraction of the period spent in the slow phase). 
 
-float spine_center_offset[] = {-10, 10}; // adjust centers independently // neg
+float spine_center_offset[] = {-10, 10}; // adjust centers independently
 
 
 void clock_init()

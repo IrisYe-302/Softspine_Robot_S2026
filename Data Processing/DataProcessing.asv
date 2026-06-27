@@ -219,10 +219,10 @@ for k = 1:nTerrain
             end
             hold on
             tt = squeeze(t_clipped(k,i,j,:));
-            plot(tt, squeeze(rear_x_clipped(k,i,j,:)), 'r')
+            %plot(tt, squeeze(rear_x_clipped(k,i,j,:)), 'r')
             plot(tt, squeeze(rear_y_clipped(k,i,j,:)), 'g')
-            plot(tt, squeeze(rear_z_clipped(k,i,j,:)), 'b')
-            plot(tt, squeeze(rear_dist(k,i,j,:)), 'Color', 'k')
+            %plot(tt, squeeze(rear_z_clipped(k,i,j,:)), 'b')
+            %plot(tt, squeeze(rear_dist(k,i,j,:)), 'Color', 'k')
             title(Phase_String(i) + " " + Trial_String(j))
             ylabel('distance / m')
             xlabel('time / s')
@@ -426,5 +426,8 @@ std_s = abs(ds_dy) * std_y_overall; % propagated uncertainty in step length
 disp("Modeled step length: " + round(s,2) + " ± " + round(std_s,2) + " cm")
 %%
 theta = 25;
+x = 28.24077;
+r_s = 4;
 s_l = 6.2;
-a = 2*s_l*sind(theta/2)
+c = 2*(x+r_s)*sind(theta/2)
+a = 2*(x+r_s+s_l)*sind(theta/2)-c
