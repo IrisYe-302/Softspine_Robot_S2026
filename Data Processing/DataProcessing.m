@@ -109,7 +109,6 @@ for k = 1:nTerrain
 end
 
 start(2,4,3) = 750; % Manual override
-disp(start(2,4,3))
 
 %% Plot Start-Detection results (run for checking)
 for k = 1:nTerrain
@@ -137,7 +136,7 @@ end
 
 %% Check how many frames are available after start in each trial (for data trimming)
 % (Run only to check)
-
+%{
 for k = 1:nTerrain
     for i = 1:nP
         for j = 1:nT
@@ -303,6 +302,7 @@ for k = 1:nTerrain
 end
 
 % Display results per trial
+disp(" ")
 disp('Average step length per trial:')
 for k = 1:nTerrain
     disp("--- " + Terrain_String(k) + " ---")
@@ -339,92 +339,145 @@ for k = 1:nTerrain
     ylabel('Step Length (cm)')
     title(Terrain_String(k) + " Average Step Length by Phase")
     ylim([0 11])
-end
-disp(round(avg_step_per_phase * 100,2) + " ± " + round(std_step_per_phase*100,2) + " cm")
 
-%% Vertical displacement (Y) per step — rear and front averaged (Granular, No-spine only)
-smooth_window_y = 30;
-k = 2; % Granular terrain only — no penetration depth concept on rigid ground
-i = 5; % "No" phase — no spine
-
-all_y_range_rear  = [];
-all_y_range_front = [];
-all_y_range        = []; % combined pool
-avg_y_range        = NaN(nT, 1); % per-trial average for display
-
-for j = 1:nT
-    if ~file_loaded(k,i,j), continue, end
-
-    % Find step boundaries using the same x-distance derivative peaks
-    dist_smooth = movmean(squeeze(rear_dist(k,i,j,:)), smooth_window_y);
-    deriv = diff(dist_smooth) * 120;
-    [~, locs] = findpeaks(deriv, 'MinPeakDistance', 80, 'MinPeakProminence', 0.008);
-
-    if length(locs) < 2, continue, end % need at least 2 peaks to form a segment
-
-    y_rear_smooth  = movmean(squeeze(rear_y_clipped(k,i,j,:)),  smooth_window_y);
-    y_front_smooth = movmean(squeeze(front_y_clipped(k,i,j,:)), smooth_window_y);
-
-    y_rear_ranges  = zeros(length(locs)-1, 1);
-    y_front_ranges = zeros(length(locs)-1, 1);
-    for b = 1:length(locs)-1
-        seg_rear  = y_rear_smooth(locs(b):locs(b+1));
-        seg_front = y_front_smooth(locs(b):locs(b+1));
-        y_rear_ranges(b)  = max(seg_rear)  - min(seg_rear);  % vertical bounce height, rear
-        y_front_ranges(b) = max(seg_front) - min(seg_front); % vertical bounce height, front
+    disp(" ")
+    disp("Average Step Length per Phase (" + Terrain_String(k) + "):")
+    for i = 1:nP
+        if isnan(avg_step_per_phase(i)), continue, end
+        disp(Phase_String(i) + ": " + round(avg_step_per_phase(i)*100, 2) + " ± " + round(std_step_per_phase(i)*100, 2) + " cm")
     end
+end
 
-    all_y_range_rear  = [all_y_range_rear;  y_rear_ranges];
-    all_y_range_front = [all_y_range_front; y_front_ranges];
-    all_y_range        = [all_y_range; y_rear_ranges; y_front_ranges]; % pool both markers
+%% Vertical displacement (Y) per step — rear and front averaged (all terrains/phases)
+% Note: penetration depth is a Granular-only concept physically (rigid ground
+% doesn't deform), but we still compute vertical bounce height for both terrains
+% here since it's a useful displacement metric on its own. Penetration depth
+% itself is only meaningful — and only computed — for Granular below.
+smooth_window_y = 30;
 
-    avg_y_range(j) = (mean(y_rear_ranges) + mean(y_front_ranges)) / 2;
+all_y_range_rear  = cell(nTerrain, nP); % collect all individual bounce heights across trials
+all_y_range_front = cell(nTerrain, nP);
+all_y_range        = cell(nTerrain, nP); % combined pool per terrain/phase
+avg_y_range        = NaN(nTerrain, nP, nT); % per-trial average for display
+
+for k = 1:nTerrain
+    for i = 1:nP
+        all_y_range_rear{k,i}  = [];
+        all_y_range_front{k,i} = [];
+        all_y_range{k,i}        = [];
+        for j = 1:nT
+            if ~file_loaded(k,i,j), continue, end
+
+            % Find step boundaries using the same x-distance derivative peaks
+            dist_smooth = movmean(squeeze(rear_dist(k,i,j,:)), smooth_window_y);
+            deriv = diff(dist_smooth) * 120;
+            [~, locs] = findpeaks(deriv, 'MinPeakDistance', 80, 'MinPeakProminence', 0.008);
+
+            if length(locs) < 2, continue, end % need at least 2 peaks to form a segment
+
+            y_rear_smooth  = movmean(squeeze(rear_y_clipped(k,i,j,:)),  smooth_window_y);
+            y_front_smooth = movmean(squeeze(front_y_clipped(k,i,j,:)), smooth_window_y);
+
+            y_rear_ranges  = zeros(length(locs)-1, 1);
+            y_front_ranges = zeros(length(locs)-1, 1);
+            for b = 1:length(locs)-1
+                seg_rear  = y_rear_smooth(locs(b):locs(b+1));
+                seg_front = y_front_smooth(locs(b):locs(b+1));
+                y_rear_ranges(b)  = max(seg_rear)  - min(seg_rear);  % vertical bounce height, rear
+                y_front_ranges(b) = max(seg_front) - min(seg_front); % vertical bounce height, front
+            end
+
+            all_y_range_rear{k,i}  = [all_y_range_rear{k,i};  y_rear_ranges];
+            all_y_range_front{k,i} = [all_y_range_front{k,i}; y_front_ranges];
+            all_y_range{k,i}        = [all_y_range{k,i}; y_rear_ranges; y_front_ranges]; % pool both markers
+
+            avg_y_range(k,i,j) = (mean(y_rear_ranges) + mean(y_front_ranges)) / 2;
+        end
+    end
 end
 
 % Display results per trial
-disp('Average vertical displacement per step (Granular, No-spine, rear & front averaged):')
-for j = 1:nT
-    if ~file_loaded(k,i,j)
-        disp(Trial_String(j) + ": missing")
-        continue
+disp(" ")
+disp('Average vertical displacement per step (rear & front averaged):')
+for k = 1:nTerrain
+    disp("--- " + Terrain_String(k) + " ---")
+    for i = 1:nP
+        for j = 1:nT
+            if ~file_loaded(k,i,j)
+                disp(Phase_String(i) + " " + Trial_String(j) + ": missing")
+                continue
+            end
+            disp(Phase_String(i) + " " + Trial_String(j) + ": " + round(avg_y_range(k,i,j)*100, 2) + " cm")
+        end
     end
-    disp(Trial_String(j) + ": " + round(avg_y_range(j)*100, 2) + " cm")
 end
 
-%% Pooled average across all trials (Granular, No-spine)
-avg_y_overall = mean(all_y_range);
-std_y_overall = std(all_y_range);
+%% Pooled vertical bounce height per terrain/phase, across all trials
+avg_y_overall = NaN(nTerrain, nP);
+std_y_overall = NaN(nTerrain, nP);
 
-disp("Overall average vertical bounce height (Granular, No-spine): " + round(avg_y_overall*100, 2) + " cm ± " + round(std_y_overall*100, 2) + " cm")
+for k = 1:nTerrain
+    for i = 1:nP
+        if isempty(all_y_range{k,i}), continue, end
+        avg_y_overall(k,i) = mean(all_y_range{k,i});
+        std_y_overall(k,i) = std(all_y_range{k,i});
+    end
+end
 
-%% Constant variables (penetration depth model — Granular, No-spine)
+disp(" ")
+disp('Overall average vertical bounce height (pooled across trials):')
+for k = 1:nTerrain
+    disp("--- " + Terrain_String(k) + " ---")
+    for i = 1:nP
+        if isnan(avg_y_overall(k,i)), continue, end
+        disp(Phase_String(i) + ": " + round(avg_y_overall(k,i)*100, 2) + " cm ± " + round(std_y_overall(k,i)*100, 2) + " cm")
+    end
+end
+
+%% Constant variables (penetration depth model)
+% Penetration depth only makes physical sense on Granular ground — rigid
+% ground does not deform, so there is no "d" for the Rigid terrain.
 h = 1.75; % cm
 D = 7.5;  % cm
 R = D/2;
 
-d = D - h - avg_y_overall*100;
-s = 2*sqrt((R)^2 - (d+h-R)^2);
+d_phase     = NaN(nTerrain, nP); % penetration depth per terrain/phase
+s_phase     = NaN(nTerrain, nP); % modeled step length (s only, no rotational correction yet)
 
-disp("Penetration depth: " + round(d,2) + " cm")
+k_granular = find(Terrain_String == "Granular"); % index of the Granular terrain, wherever it sits in Terrain_String
 
-%% Error propagation for modeled step length (using std, not SEM)
-delta = 1e-6; % small step for numerical derivative
+for i = 1:nP
+    if isnan(avg_y_overall(k_granular,i)), continue, end
 
-y_plus  = avg_y_overall + delta;
-y_minus = avg_y_overall - delta;
+    d_phase(k_granular,i) = D - h - avg_y_overall(k_granular,i)*100;
+    s_phase(k_granular,i) = 2*sqrt((R)^2 - (d_phase(k_granular,i)+h-R)^2);
+end
 
-d_plus  = D - h - y_plus*100;
-d_minus = D - h - y_minus*100;
+disp(" ")
+disp('Penetration depth and modeled step length without spine actuation per phase (Granular only):')
+for i = 1:nP
+    if isnan(d_phase(k_granular,i))
+        disp(Phase_String(i) + ": no data")
+        continue
+    end
+    disp(Phase_String(i) + ": d = " + round(d_phase(k_granular,i),2) + " cm, modeled step length without spine actuation = " + round(s_phase(k_granular,i),2) + " cm")
+end
 
-s_plus  = 2*sqrt((R)^2 - (d_plus+h-R)^2);
-s_minus = 2*sqrt((R)^2 - (d_minus+h-R)^2);
+%% Save results for use in the penetration depth / rotational-correction combiner script
+% avg_step_per_phase / std_step_per_phase were computed in the step-length section above,
+% per terrain (loop variable k there). Re-derive them here per terrain so both get saved cleanly.
+avg_step_per_phase_all = NaN(nTerrain, nP);
+std_step_per_phase_all = NaN(nTerrain, nP);
+for k = 1:nTerrain
+    for i = 1:nP
+        if isempty(all_steps{k,i}), continue, end
+        avg_step_per_phase_all(k,i) = mean(all_steps{k,i});
+        std_step_per_phase_all(k,i) = std(all_steps{k,i});
+    end
+end
 
-ds_dy = (s_plus - s_minus) / (2*delta); % numerical derivative
-
-std_s = abs(ds_dy) * std_y_overall; % propagated uncertainty in step length
-
-disp("Modeled step length: " + round(s,2) + " ± " + round(std_s,2) + " cm")
-%%
-theta = 25;
-s_l = 6.2;
-a = 2*s_l*sind(theta/2)
+save("DataProcessing_results.mat", "Terrain_String", "Phase_String", ...
+    "avg_step_per_phase_all", "std_step_per_phase_all", ...
+    "d_phase", "s_phase", "k_granular", "start")
+disp(" ")
+disp("Saved results to DataProcessing_results.mat")

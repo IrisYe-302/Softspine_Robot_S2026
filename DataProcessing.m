@@ -4,8 +4,8 @@ clc
 
 % Experimental conditions
 Phase_String = ["Con" "Des" "0" "2" "No"]; % 5 phases
-Trial_String = ["T1" "T2" "T3"]; % 3 trials per phase
-Terrain_String = ["Rigid" "Granular"]; % 2 terrains
+Trial_String = ["T1" "T2" "T3"];            % 3 trials per phase
+Terrain_String = ["Rigid" "Granular"];         % 2 terrains
 nP = length(Phase_String);
 nT = length(Trial_String);
 nTerrain = length(Terrain_String);
@@ -68,7 +68,7 @@ for k = 1:nTerrain
 end
 
 %% Compute Velocities
-rear_Vx = zeros(nTerrain, nP, nT, 20000);
+rear_Vx  = zeros(nTerrain, nP, nT, 20000);
 front_Vx = zeros(nTerrain, nP, nT, 20000);
 
 for k = 1:nTerrain
@@ -154,14 +154,14 @@ end
 clip_length = 1600; % frames after start to keep
 
 % Preallocate clipped arrays
-rear_x_clipped = zeros(nTerrain, nP, nT, clip_length);
-rear_y_clipped = zeros(nTerrain, nP, nT, clip_length);
-rear_z_clipped = zeros(nTerrain, nP, nT, clip_length);
-front_x_clipped = zeros(nTerrain, nP, nT, clip_length);
-front_y_clipped = zeros(nTerrain, nP, nT, clip_length);
-front_z_clipped = zeros(nTerrain, nP, nT, clip_length);
-t_clipped = zeros(nTerrain, nP, nT, clip_length);
-rear_Vx_clipped = zeros(nTerrain, nP, nT, clip_length);
+rear_x_clipped   = zeros(nTerrain, nP, nT, clip_length);
+rear_y_clipped   = zeros(nTerrain, nP, nT, clip_length);
+rear_z_clipped   = zeros(nTerrain, nP, nT, clip_length);
+front_x_clipped  = zeros(nTerrain, nP, nT, clip_length);
+front_y_clipped  = zeros(nTerrain, nP, nT, clip_length);
+front_z_clipped  = zeros(nTerrain, nP, nT, clip_length);
+t_clipped        = zeros(nTerrain, nP, nT, clip_length);
+rear_Vx_clipped  = zeros(nTerrain, nP, nT, clip_length);
 front_Vx_clipped = zeros(nTerrain, nP, nT, clip_length);
 
 for k = 1:nTerrain
@@ -171,37 +171,37 @@ for k = 1:nTerrain
             s = start(k,i,j);
 
             % Clip to fixed window starting at detected start frame
-            rear_x_clipped(k,i,j,:) = rear_x(k,i,j, s:s+clip_length-1);
-            rear_y_clipped(k,i,j,:) = rear_y(k,i,j, s:s+clip_length-1);
-            rear_z_clipped(k,i,j,:) = rear_z(k,i,j, s:s+clip_length-1);
+            rear_x_clipped(k,i,j,:)  = rear_x(k,i,j,  s:s+clip_length-1);
+            rear_y_clipped(k,i,j,:)  = rear_y(k,i,j,  s:s+clip_length-1);
+            rear_z_clipped(k,i,j,:)  = rear_z(k,i,j,  s:s+clip_length-1);
             front_x_clipped(k,i,j,:) = front_x(k,i,j, s:s+clip_length-1);
             front_y_clipped(k,i,j,:) = front_y(k,i,j, s:s+clip_length-1);
             front_z_clipped(k,i,j,:) = front_z(k,i,j, s:s+clip_length-1);
-            t_clipped(k,i,j,:) = t(k,i,j, s:s+clip_length-1);
-            rear_Vx_clipped(k,i,j,:) = rear_Vx(k,i,j, s:s+clip_length-1);
+            t_clipped(k,i,j,:)        = t(k,i,j, s:s+clip_length-1);
+            rear_Vx_clipped(k,i,j,:)  = rear_Vx(k,i,j,  s:s+clip_length-1);
             front_Vx_clipped(k,i,j,:) = front_Vx(k,i,j, s:s+clip_length-1);
 
             % Zero-reference to the start position
-            rear_x_clipped(k,i,j,:) = rear_x_clipped(k,i,j,:) - rear_x_clipped(k,i,j,1);
-            rear_y_clipped(k,i,j,:) = rear_y_clipped(k,i,j,:) - rear_y_clipped(k,i,j,1);
-            rear_z_clipped(k,i,j,:) = rear_z_clipped(k,i,j,:) - rear_z_clipped(k,i,j,1);
+            rear_x_clipped(k,i,j,:)  = rear_x_clipped(k,i,j,:)  - rear_x_clipped(k,i,j,1);
+            rear_y_clipped(k,i,j,:)  = rear_y_clipped(k,i,j,:)  - rear_y_clipped(k,i,j,1);
+            rear_z_clipped(k,i,j,:)  = rear_z_clipped(k,i,j,:)  - rear_z_clipped(k,i,j,1);
             front_x_clipped(k,i,j,:) = front_x_clipped(k,i,j,:) - front_x_clipped(k,i,j,1);
             front_y_clipped(k,i,j,:) = front_y_clipped(k,i,j,:) - front_y_clipped(k,i,j,1);
             front_z_clipped(k,i,j,:) = front_z_clipped(k,i,j,:) - front_z_clipped(k,i,j,1);
-            t_clipped(k,i,j,:) = t_clipped(k,i,j,:) - t_clipped(k,i,j,1);
+            t_clipped(k,i,j,:)        = t_clipped(k,i,j,:) - t_clipped(k,i,j,1);
         end
     end
 end
 
 %% Calculate total 3D distance
-rear_dist = zeros(nTerrain, nP, nT, clip_length);
+rear_dist  = zeros(nTerrain, nP, nT, clip_length);
 front_dist = zeros(nTerrain, nP, nT, clip_length);
 
 for k = 1:nTerrain
     for i = 1:nP
         for j = 1:nT
             if ~file_loaded(k,i,j), continue, end
-            rear_dist(k,i,j,:) = sqrt(rear_x_clipped(k,i,j,:).^2 + rear_y_clipped(k,i,j,:).^2 + rear_z_clipped(k,i,j,:).^2);
+            rear_dist(k,i,j,:)  = sqrt(rear_x_clipped(k,i,j,:).^2  + rear_y_clipped(k,i,j,:).^2  + rear_z_clipped(k,i,j,:).^2);
             front_dist(k,i,j,:) = sqrt(front_x_clipped(k,i,j,:).^2 + front_y_clipped(k,i,j,:).^2 + front_z_clipped(k,i,j,:).^2);
         end
     end
@@ -219,10 +219,10 @@ for k = 1:nTerrain
             end
             hold on
             tt = squeeze(t_clipped(k,i,j,:));
-            %plot(tt, squeeze(rear_x_clipped(k,i,j,:)), 'r')
+            plot(tt, squeeze(rear_x_clipped(k,i,j,:)), 'r')
             plot(tt, squeeze(rear_y_clipped(k,i,j,:)), 'g')
-            %plot(tt, squeeze(rear_z_clipped(k,i,j,:)), 'b')
-            %plot(tt, squeeze(rear_dist(k,i,j,:)), 'Color', 'k')
+            plot(tt, squeeze(rear_z_clipped(k,i,j,:)), 'b')
+            plot(tt, squeeze(rear_dist(k,i,j,:)), 'Color', [0.6 0.6 0.6], 'LineWidth', 1.5)
             title(Phase_String(i) + " " + Trial_String(j))
             ylabel('distance / m')
             xlabel('time / s')
@@ -250,7 +250,7 @@ for k = 1:nTerrain
             plot(tt, squeeze(front_x_clipped(k,i,j,:)), 'r')
             plot(tt, squeeze(front_y_clipped(k,i,j,:)), 'g')
             plot(tt, squeeze(front_z_clipped(k,i,j,:)), 'b')
-            plot(tt, squeeze(front_dist(k,i,j,:)), 'Color', 'k')
+            plot(tt, squeeze(front_dist(k,i,j,:)), 'Color', [0.6 0.6 0.6], 'LineWidth', 1.5)
             title(Phase_String(i) + " " + Trial_String(j))
             ylabel('distance / m')
             xlabel('time / s')
@@ -264,37 +264,37 @@ for k = 1:nTerrain
 end
 
 %% Step length calculation
-smooth_window = 30;
-all_steps_rear = cell(nTerrain, nP); % collect all individual steps across trials
+smooth_window   = 30;
+all_steps_rear  = cell(nTerrain, nP); % collect all individual steps across trials
 all_steps_front = cell(nTerrain, nP);
-all_steps = cell(nTerrain, nP);
-avg_step = zeros(nTerrain, nP, nT); % per-trial average for display
+all_steps       = cell(nTerrain, nP);
+avg_step        = zeros(nTerrain, nP, nT); % per-trial average for display
 
 for k = 1:nTerrain
     for i = 1:nP
         all_steps_rear{k,i}  = [];
         all_steps_front{k,i} = [];
-        all_steps{k,i} = [];
+        all_steps{k,i}       = [];
         for j = 1:nT
             if ~file_loaded(k,i,j), continue, end
 
-            rear_dist_smooth = movmean(squeeze(rear_dist(k,i,j,:)), smooth_window);
+            rear_dist_smooth  = movmean(squeeze(rear_dist(k,i,j,:)),  smooth_window);
             front_dist_smooth = movmean(squeeze(front_dist(k,i,j,:)), smooth_window);
-            rear_deriv = diff(rear_dist_smooth)  * 120;
+            rear_deriv  = diff(rear_dist_smooth)  * 120;
             front_deriv = diff(front_dist_smooth) * 120;
 
             % Find peaks in derivative
-            [~, rear_locs] = findpeaks(rear_deriv, 'MinPeakDistance', 80, 'MinPeakProminence', 0.008);
+            [~, rear_locs]  = findpeaks(rear_deriv,  'MinPeakDistance', 80, 'MinPeakProminence', 0.008);
             [~, front_locs] = findpeaks(front_deriv, 'MinPeakDistance', 80, 'MinPeakProminence', 0.008);
 
             % Individual step lengths for this trial
-            rear_steps = diff(rear_dist_smooth(rear_locs));
+            rear_steps  = diff(rear_dist_smooth(rear_locs));
             front_steps = diff(front_dist_smooth(front_locs));
 
             % Append raw steps to pool for this phase
-            all_steps_rear{k,i} = [all_steps_rear{k,i},  rear_steps'];
+            all_steps_rear{k,i}  = [all_steps_rear{k,i},  rear_steps'];
             all_steps_front{k,i} = [all_steps_front{k,i}, front_steps'];
-            all_steps{k,i} = [all_steps{k,i}, rear_steps', front_steps'];
+            all_steps{k,i}       = [all_steps{k,i}, rear_steps', front_steps'];
 
             % Store per-trial average for display
             avg_step(k,i,j) = (mean(rear_steps) + mean(front_steps)) / 2;
@@ -317,7 +317,7 @@ for k = 1:nTerrain
     end
 end
 
-%% Plot of average step length per phase (one figure per terrain)
+%% Bar graph of average step length per phase (one figure per terrain)
 for k = 1:nTerrain
     avg_step_per_phase = zeros(nP, 1);
     std_step_per_phase = zeros(nP, 1);
@@ -329,105 +329,11 @@ for k = 1:nTerrain
     end
 
     figure
+    bar(avg_step_per_phase * 100)
     hold on
-    errorbar(1:nP, avg_step_per_phase * 100, std_step_per_phase * 100, 'b.', 'LineWidth', 1.5)
-    plot(1:nP, avg_step_per_phase * 100, 'o','MarkerEdgeColor', 'b', 'LineWidth', 1.5, 'MarkerFaceColor', 'w')
-    xlim([0.5, nP+0.5]) % force full x range
-    xticks(1:nP)
+    errorbar(1:nP, avg_step_per_phase * 100, std_step_per_phase * 100, 'k.', 'LineWidth', 1.5)
     xticklabels(Phase_String)
-    xlabel('Coordination Type')
+    xlabel('Phase')
     ylabel('Step Length (cm)')
     title(Terrain_String(k) + " Average Step Length by Phase")
-    ylim([0 11])
 end
-disp(round(avg_step_per_phase * 100,2) + " ± " + round(std_step_per_phase*100,2) + " cm")
-
-%% Vertical displacement (Y) per step — rear and front averaged (Granular, No-spine only)
-smooth_window_y = 30;
-k = 2; % Granular terrain only — no penetration depth concept on rigid ground
-i = 5; % "No" phase — no spine
-
-all_y_range_rear  = [];
-all_y_range_front = [];
-all_y_range        = []; % combined pool
-avg_y_range        = NaN(nT, 1); % per-trial average for display
-
-for j = 1:nT
-    if ~file_loaded(k,i,j), continue, end
-
-    % Find step boundaries using the same x-distance derivative peaks
-    dist_smooth = movmean(squeeze(rear_dist(k,i,j,:)), smooth_window_y);
-    deriv = diff(dist_smooth) * 120;
-    [~, locs] = findpeaks(deriv, 'MinPeakDistance', 80, 'MinPeakProminence', 0.008);
-
-    if length(locs) < 2, continue, end % need at least 2 peaks to form a segment
-
-    y_rear_smooth  = movmean(squeeze(rear_y_clipped(k,i,j,:)),  smooth_window_y);
-    y_front_smooth = movmean(squeeze(front_y_clipped(k,i,j,:)), smooth_window_y);
-
-    y_rear_ranges  = zeros(length(locs)-1, 1);
-    y_front_ranges = zeros(length(locs)-1, 1);
-    for b = 1:length(locs)-1
-        seg_rear  = y_rear_smooth(locs(b):locs(b+1));
-        seg_front = y_front_smooth(locs(b):locs(b+1));
-        y_rear_ranges(b)  = max(seg_rear)  - min(seg_rear);  % vertical bounce height, rear
-        y_front_ranges(b) = max(seg_front) - min(seg_front); % vertical bounce height, front
-    end
-
-    all_y_range_rear  = [all_y_range_rear;  y_rear_ranges];
-    all_y_range_front = [all_y_range_front; y_front_ranges];
-    all_y_range        = [all_y_range; y_rear_ranges; y_front_ranges]; % pool both markers
-
-    avg_y_range(j) = (mean(y_rear_ranges) + mean(y_front_ranges)) / 2;
-end
-
-% Display results per trial
-disp('Average vertical displacement per step (Granular, No-spine, rear & front averaged):')
-for j = 1:nT
-    if ~file_loaded(k,i,j)
-        disp(Trial_String(j) + ": missing")
-        continue
-    end
-    disp(Trial_String(j) + ": " + round(avg_y_range(j)*100, 2) + " cm")
-end
-
-%% Pooled average across all trials (Granular, No-spine)
-avg_y_overall = mean(all_y_range);
-std_y_overall = std(all_y_range);
-
-disp("Overall average vertical bounce height (Granular, No-spine): " + round(avg_y_overall*100, 2) + " cm ± " + round(std_y_overall*100, 2) + " cm")
-
-%% Constant variables (penetration depth model — Granular, No-spine)
-h = 1.75; % cm
-D = 7.5;  % cm
-R = D/2;
-
-d = D - h - avg_y_overall*100;
-s = 2*sqrt((R)^2 - (d+h-R)^2);
-
-disp("Penetration depth: " + round(d,2) + " cm")
-
-%% Error propagation for modeled step length (using std, not SEM)
-delta = 1e-6; % small step for numerical derivative
-
-y_plus  = avg_y_overall + delta;
-y_minus = avg_y_overall - delta;
-
-d_plus  = D - h - y_plus*100;
-d_minus = D - h - y_minus*100;
-
-s_plus  = 2*sqrt((R)^2 - (d_plus+h-R)^2);
-s_minus = 2*sqrt((R)^2 - (d_minus+h-R)^2);
-
-ds_dy = (s_plus - s_minus) / (2*delta); % numerical derivative
-
-std_s = abs(ds_dy) * std_y_overall; % propagated uncertainty in step length
-
-disp("Modeled step length: " + round(s,2) + " ± " + round(std_s,2) + " cm")
-%%
-theta = 25;
-x = 28.24077;
-r_s = 4;
-s_l = 6.2;
-c = 2*(x+r_s)*sind(theta/2)
-a = 2*(x+r_s+s_l)*sind(theta/2)-c

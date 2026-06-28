@@ -282,6 +282,7 @@ for i = 1:nP
 end
 
 % Display results per trial
+disp(" ")
 disp('Average step length per trial:')
 for i = 1:nP
     for j = 1:nT
@@ -316,6 +317,13 @@ ylabel('Step Length (cm)')
 title("Pierre Sand Average Step Length by Phase")
 ylim([-1 11])
 
+disp(" ")
+disp("Average Step Length per Phase:")
+for i = 1:nP
+    if isnan(avg_step_per_phase(i)), continue, end
+    disp(Phase_String(i) + ": " + round(avg_step_per_phase(i)*100, 2) + " ± " + round(std_step_per_phase(i)*100, 2) + " cm")
+end
+
 %% Vertical displacement (Y) per step — rear and front averaged
 smooth_window_y = 30;
 all_y_range = cell(nP, 1);
@@ -349,6 +357,7 @@ for i = 1:nP
     end
 end
 
+disp(" ")
 disp('Average vertical displacement per step:')
 for i = 1:nP
     for j = 1:nT
@@ -362,16 +371,14 @@ end
 
 %% Penetration depth + modeled step length per phase (only valid where data exists)
 h = 1.75; % cm
-D = 7;  % cm
+D = 7.0;  % cm
 R = D/2;
 
 avg_y_overall = NaN(nP, 1);
 std_y_overall = NaN(nP, 1);
 d_phase       = NaN(nP, 1);
 s_phase       = NaN(nP, 1);
-std_s_phase   = NaN(nP, 1);
 
-delta = 1e-6;
 for i = 1:nP
     if isempty(all_y_range{i}), continue, end
 
@@ -380,23 +387,21 @@ for i = 1:nP
 
     d_phase(i) = D - h - avg_y_overall(i)*100;
     s_phase(i) = 2*sqrt((R)^2 - (d_phase(i)+h-R)^2);
-
-    % error propagation
-    y_plus  = avg_y_overall(i) + delta;
-    y_minus = avg_y_overall(i) - delta;
-    d_plus  = D - h - y_plus*100;
-    d_minus = D - h - y_minus*100;
-    s_plus  = 2*sqrt((R)^2 - (d_plus+h-R)^2);
-    s_minus = 2*sqrt((R)^2 - (d_minus+h-R)^2);
-    ds_dy = (s_plus - s_minus) / (2*delta);
-    std_s_phase(i) = abs(ds_dy) * std_y_overall(i);
 end
 
-disp('Penetration depth, aerial contribution, and modeled step length per phase:')
+disp(" ")
+disp('Penetration depth and modeled step length without spine actuation per phase:')
 for i = 1:nP
     if isnan(d_phase(i))
         disp(Phase_String(i) + ": no data")
         continue
     end
-    disp(Phase_String(i) + ": d = " + round(d_phase(i),2) + " cm, modeled step length = " + round(s_phase(i),2) + " ± " + round(std_s_phase(i),2) + " cm, actual step length = "+ound(avg_step_per_phase * 100,2) + " ± " + round(std_step_per_phase*100,2) + " cm")
+    disp(Phase_String(i) + ": d = " + round(d_phase(i),2) + " cm, modeled step length without spine actuation = " + round(s_phase(i),2) + " cm")
 end
+
+%% Save results for use in the penetration depth / rotational-correction combiner script
+save("PierreDataProcessing_results.mat", "Phase_String", ...
+    "avg_step_per_phase", "std_step_per_phase", ...
+    "d_phase", "s_phase", "start", "end_frame")
+disp(" ")
+disp("Saved results to PierreDataProcessing_results.mat")
