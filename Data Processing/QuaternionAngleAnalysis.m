@@ -3,7 +3,7 @@ clear
 clc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% DATASET DEFINITIONS — add/edit entries here, the loop below runs all of them
+% Datasets (will be loaded from .mat files) and manual overrides
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 datasets = struct([]);
 
@@ -21,11 +21,11 @@ datasets(1).start_quat_override = round([[14.8, 7.5, 0.6];[0.8, 3.8, 13.7];[5.8,
 
 % Hardcoded quaternion-end overrides (frame numbers)
 datasets(1).end_quat_override = [];
-datasets(1).end_quat_override(1,1) = 34*120; % Con T1
-datasets(1).end_quat_override(1,2) = 31*120; % Con T2
-datasets(1).end_quat_override(2,1) = 26*120; % Des T1
-datasets(1).end_quat_override(2,2) = 31*120; % Des T2
-datasets(1).end_quat_override(2,3) = 85*120; % Des T3
+datasets(1).end_quat_override(1,1) = 35*120; % Con T1
+datasets(1).end_quat_override(1,2) = 32*120; % Con T2
+datasets(1).end_quat_override(2,1) = 27*120; % Des T1
+datasets(1).end_quat_override(2,2) = 32*120; % Des T2
+datasets(1).end_quat_override(2,3) = 86*120; % Des T3
 
 datasets(2).name          = "Pierre";
 datasets(2).data_folder   = "Apr17_Data";
@@ -38,7 +38,7 @@ datasets(2).front_offset  = 7;   % legacyFront position column
 % No start overrides needed here; defaults stay at frame 1
 datasets(2).start_quat_override = ones(length(datasets(2).Phase_String), length(datasets(2).Trial_String));
 
-datasets(2).start_quat_override = round([[10, 17.6, 17];[10.6, 17.6, 16.2];[11.9, 21.8, 15.5]] * 120);
+datasets(2).start_quat_override = round([[12, 17.6, 19];[10.6, 17.8, 16.2];[11.9, 22, 16]] * 120);
 
 datasets(2).end_quat_override = [];
 datasets(2).end_quat_override = round([[26, 32, 33]; [26, 32, 31]; [26,38,31]] *120);  % Con 1
@@ -53,7 +53,7 @@ datasets(3).front_offset  = 7;   % legacyFront position column
 
 datasets(3).start_quat_override = ones(length(datasets(3).Phase_String), length(datasets(3).Trial_String));
 
-datasets(3).start_quat_override = round([[1, 1.9, 1.5];[1.5, 2.9, 1];[2.4, 1.8, 1.7]] * 120);
+datasets(3).start_quat_override = round([[1, 1.9, 1.5];[3.5, 5.5, 1.5];[4, 3, 3]] * 120);
 
 datasets(3).end_quat_override = [];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -175,7 +175,7 @@ function run_quaternion_analysis(cfg)
     angle_between_roll = wrapToPi(roll_front - roll_rear);
     angle_between_roll_deg = rad2deg(angle_between_roll);
 
-    %% Smooth angle data (used for trimming metric)
+    %% Smooth angle data (used for trimming)
     smooth_window_angle = 30;
     yaw_smooth  = zeros(nP, nT, maxPts);
     roll_smooth = zeros(nP, nT, maxPts);
@@ -213,6 +213,7 @@ function run_quaternion_analysis(cfg)
     disp(end_quat)
 
     %% Plot start and end cutoffs — yaw
+    %{
     figure
     tiledlayout(nP, nT, 'TileSpacing','compact', 'Padding','compact')
 
@@ -245,8 +246,10 @@ function run_quaternion_analysis(cfg)
     end
 
     sgtitle(cfg.name + " — Yaw: Start (blue) and End (red)")
+    %}
 
     %% Plot start and end cutoffs — roll
+    %{
     figure
     tiledlayout(nP, nT, 'TileSpacing','compact', 'Padding','compact')
 
@@ -279,7 +282,7 @@ function run_quaternion_analysis(cfg)
     end
 
     sgtitle(cfg.name + " — Roll: Start (blue) and End (red)")
-
+    %}
     %% Zero-reference yaw and roll to the hardcoded start frame
     yaw_zeroed  = zeros(nP, nT, maxPts);
     roll_zeroed = zeros(nP, nT, maxPts);
@@ -313,8 +316,23 @@ function run_quaternion_analysis(cfg)
 
             yaw_segment  = squeeze(yaw_zeroed(i,j,s:e));
             roll_segment = squeeze(roll_zeroed(i,j,s:e));
-            max_yaw_disp(i,j)  = max(abs(yaw_segment));
-            max_roll_disp(i,j) = max(abs(roll_segment));
+
+            % Ignore major outliers using robust percentiles.
+            yaw_segment  = yaw_segment(isfinite(yaw_segment));
+            roll_segment = roll_segment(isfinite(roll_segment));
+
+            if isempty(yaw_segment) || isempty(roll_segment)
+                continue
+            end
+
+            % Amplitude is half the peak-to-trough distance.
+            yaw_low   = prctile(yaw_segment, 5);
+            yaw_high  = prctile(yaw_segment, 95);
+            roll_low  = prctile(roll_segment, 5);
+            roll_high = prctile(roll_segment, 95);
+
+            max_yaw_disp(i,j)  = (yaw_high  - yaw_low)  / 2;
+            max_roll_disp(i,j) = (roll_high - roll_low) / 2;
         end
     end
 
@@ -380,7 +398,7 @@ function run_quaternion_analysis(cfg)
 
     sgtitle(cfg.name + " — Trimmed Roll Data")
 
-    %% Display results — yaw
+    %% Display yaw
     disp(" ")
     disp('Maximum yaw angular displacement from neutral per trial (degrees):')
     for i = 1:nP
@@ -393,7 +411,7 @@ function run_quaternion_analysis(cfg)
         end
     end
 
-    %% Display results — roll
+    %% Display roll
     disp(" ")
     disp('Maximum roll angular displacement from neutral per trial (degrees):')
     for i = 1:nP

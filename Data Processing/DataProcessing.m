@@ -435,8 +435,7 @@ for k = 1:nTerrain
 end
 
 %% Constant variables (penetration depth model)
-% Penetration depth only makes physical sense on Granular ground — rigid
-% ground does not deform, so there is no "d" for the Rigid terrain.
+% Penetration depth only makes physical sense on Granular ground , so there's no "d" for the Rigid terrain.
 h = 1.75; % cm
 D = 7.5;  % cm
 R = D/2;
@@ -464,8 +463,8 @@ for i = 1:nP
 end
 
 %% Save results for use in the penetration depth / rotational-correction combiner script
-% avg_step_per_phase / std_step_per_phase were computed in the step-length section above,
-% per terrain (loop variable k there). Re-derive them here per terrain so both get saved cleanly.
+% avg_step_per_phase / std_step_per_phase were computed already, they're just re-derived per terrain so both get saved cleanly.
+
 avg_step_per_phase_all = NaN(nTerrain, nP);
 std_step_per_phase_all = NaN(nTerrain, nP);
 for k = 1:nTerrain
