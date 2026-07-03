@@ -434,6 +434,31 @@ for k = 1:nTerrain
     end
 end
 
+%% Plot vertical displacement (Y) per terrain
+for k = 1:nTerrain
+    figure
+    for i = 1:nP
+        for j = 1:nT
+            subplot(nP, nT, (i-1)*nT + j)
+            if ~file_loaded(k,i,j)
+                title(Phase_String(i) + " " + Trial_String(j) + " (missing)")
+                continue
+            end
+            tt = squeeze(t_clipped(k,i,j,:));
+            plot(tt, squeeze(rear_y_clipped(k,i,j,:)), 'r')
+            hold on
+            plot(tt, squeeze(front_y_clipped(k,i,j,:)), 'b')
+            hold off
+            title(Phase_String(i) + " " + Trial_String(j))
+            ylabel('∆Y / m')
+            xlabel('time / s')
+        end
+    end
+    sgtitle(Terrain_String(k) + " Vertical Displacement vs. Time")
+    lgd = legend('Rear', 'Front', 'Orientation', 'horizontal');
+    lgd.Units = 'normalized';
+    lgd.Position = [0.4, 0.04, 0.2, 0.02];
+end
 %% Constant variables (penetration depth model)
 % Penetration depth only makes physical sense on Granular ground , so there's no "d" for the Rigid terrain.
 h = 1.75; % cm
