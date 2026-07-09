@@ -8,20 +8,25 @@ clc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 experiments = struct([]);
 
-experiments(1).name           = "Main (June12, Rigid/Granular)";
+experiments(1).name           = "Reinforced Spine";
 experiments(1).data_mat       = "DataProcessing_results.mat";
 experiments(1).quat_mat       = "QuaternionAngleAnalysis_June12_results.mat";
 experiments(1).has_terrain    = true; % DataProcessing.m's results are indexed by terrain too
 
-experiments(2).name           = "Pierre (Apr17, Sand)";
+experiments(2).name           = "Double Spine";
 experiments(2).data_mat       = "PierreDataProcessing_results.mat";
 experiments(2).quat_mat       = "QuaternionAngleAnalysis_Pierre_results.mat";
 experiments(2).has_terrain    = false;
 
-experiments(3).name           = "Sahil (July25, Sand)";
+experiments(3).name           = "Single Spine";
 experiments(3).data_mat       = "SahilDataProcessing_results.mat";
 experiments(3).quat_mat       = "QuaternionAngleAnalysis_Sahil_results.mat";
 experiments(3).has_terrain    = false;
+
+experiments(4).name           = "Reinforced on Sand";
+experiments(4).data_mat       = "DataProcessing2_results.mat";
+experiments(4).quat_mat       = "QuaternionAngleAnalysis_ReinforcedOnSand_results.mat";
+experiments(4).has_terrain    = false;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for e = 1:length(experiments)
@@ -128,7 +133,7 @@ function run_combiner(cfg)
         for k = 1:length(Terrain_String)
             disp("--- " + Terrain_String(k) + " ---")
             for i = 1:nP
-                actual_str = "no data";
+                actual_str = "---";
                 if ~isnan(data.avg_step_per_phase_all(k,i))
                     actual_str = round(data.avg_step_per_phase_all(k,i)*100,2) + " ± " + round(data.std_step_per_phase_all(k,i)*100,2) + " cm";
                 end
@@ -138,7 +143,7 @@ function run_combiner(cfg)
                     a_val = a_phase(i);
                 end
 
-                modeled_str = "no data";
+                modeled_str = "---";
                 if ~isnan(s_plus_a_phase(k,i))
                     modeled_str = round(s_plus_a_phase(k,i),2) + " cm (d=" + round(data.d_phase(k,i),2) + ", s=" + round(data.s_phase(k,i),2) + ", a=" + round(a_val,2) + ")";
                 end
@@ -161,7 +166,7 @@ function run_combiner(cfg)
 
         disp('Actual vs. Modeled Step Length:')
         for i = 1:nP
-            actual_str = "no data";
+            actual_str = "---";
             if ~isnan(data.avg_step_per_phase(i))
                 actual_str = round(data.avg_step_per_phase(i)*100,2) + " ± " + round(data.std_step_per_phase(i)*100,2) + " cm";
             end
@@ -171,7 +176,7 @@ function run_combiner(cfg)
                 a_val = a_phase(i);
             end
 
-            modeled_str = "no data";
+            modeled_str = "---";
             if ~isnan(s_plus_a_phase(i))
                 modeled_str = round(s_plus_a_phase(i),2) + " cm (d=" + round(data.d_phase(i),2) + ", s=" + round(data.s_phase(i),2) + ", a=" + round(a_val,2) + ")";
             end

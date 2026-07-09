@@ -7,7 +7,8 @@ clc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 datasets = struct([]);
 
-datasets(1).name          = "June12";
+datasets(1).name          = "Reinforced Spine";
+datasets(1).save_name     = "ReinforcedSpine";
 datasets(1).data_folder   = "June12_Data";
 datasets(1).Phase_String  = ["Con" "Des" "0" "2" "No"];
 datasets(1).Trial_String  = ["T1" "T2" "T3"];
@@ -27,7 +28,8 @@ datasets(1).end_quat_override(2,1) = 27*120; % Des T1
 datasets(1).end_quat_override(2,2) = 32*120; % Des T2
 datasets(1).end_quat_override(2,3) = 86*120; % Des T3
 
-datasets(2).name          = "Pierre";
+datasets(2).name          = "Double Spine";
+datasets(2).save_name     = "DoubleSpine";
 datasets(2).data_folder   = "Apr17_Data";
 datasets(2).Phase_String  = ["Con" "Des" "No"];
 datasets(2).Trial_String  = ["1" "2" "3"];
@@ -37,13 +39,13 @@ datasets(2).front_offset  = 7;   % legacyFront position column
 
 % No start overrides needed here; defaults stay at frame 1
 datasets(2).start_quat_override = ones(length(datasets(2).Phase_String), length(datasets(2).Trial_String));
-
 datasets(2).start_quat_override = round([[12, 17.6, 19];[10.6, 17.8, 16.2];[11.9, 22, 16]] * 120);
 
 datasets(2).end_quat_override = [];
 datasets(2).end_quat_override = round([[26, 32, 33]; [26, 32, 31]; [26,38,31]] *120);  % Con 1
 
-datasets(3).name          = "Sahil";
+datasets(3).name          = "Single Spine";
+datasets(3).save_name     = "SingleSpine";
 datasets(3).data_folder   = "July25_Data";
 datasets(3).Phase_String  = ["Con" "Des" "wo"];
 datasets(3).Trial_String  = ["1" "2" "3"];
@@ -52,10 +54,29 @@ datasets(3).rear_offset   = 23;  % legacyRear position column
 datasets(3).front_offset  = 7;   % legacyFront position column
 
 datasets(3).start_quat_override = ones(length(datasets(3).Phase_String), length(datasets(3).Trial_String));
-
 datasets(3).start_quat_override = round([[1, 1.9, 1.5];[3.5, 5.5, 1.5];[4, 3, 3]] * 120);
 
 datasets(3).end_quat_override = [];
+
+% New dataset from DataProcessing2.m
+datasets(4).name          = "Reinforced on Sand";
+datasets(4).save_name     = "ReinforcedOnSand";
+datasets(4).data_folder   = "July2_Data";
+datasets(4).Phase_String  = ["Con" "Des" "No"];
+datasets(4).Trial_String  = ["1" "2" "3"];
+datasets(4).filename_fun  = @(phase, trial) "July2_" + phase + "_T" + trial;
+datasets(4).rear_offset   = 7;   % SpineRobot_Aft position column
+datasets(4).front_offset  = 23;  % SpineRobot_Front position column
+
+datasets(4).start_quat_override = ones(length(datasets(4).Phase_String), length(datasets(4).Trial_String));
+datasets(4).start_quat_override = [1300 1400 1090; 1450 1315 1700; 1430 2320 1090];
+
+datasets(4).end_quat_override = [3460 3230 2910; 3780 3650 3820; 4020 4500 3250];
+
+datasets(1).yaw_mode = "x";
+datasets(2).yaw_mode = "x";
+datasets(3).yaw_mode = "x";
+datasets(4).yaw_mode = "z";
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for d = 1:length(datasets)
@@ -70,7 +91,7 @@ function run_quaternion_analysis(cfg)
     Trial_String = cfg.Trial_String;
     data_folder  = cfg.data_folder;
     filename_fun = cfg.filename_fun;
-    results_mat   = "QuaternionAngleAnalysis_" + cfg.name + "_results.mat";
+    results_mat   = "QuaternionAngleAnalysis_" + cfg.save_name + "_results.mat";
 
     nP = length(Phase_String);
     nT = length(Trial_String);
@@ -116,64 +137,140 @@ function run_quaternion_analysis(cfg)
         end
     end
 
-    %% Compute heading angle (yaw) from quaternion — X-axis projected onto XZ plane
-    heading_rear  = zeros(nP, nT, maxPts);
-    heading_front = zeros(nP, nT, maxPts);
+    %% TEST: Compare X-forward vs Z-forward heading
+
+    figure
 
     for i = 1:nP
         for j = 1:nT
+
             if ~file_loaded(i,j), continue, end
 
             qx = squeeze(rear_quat(i,j,:,1));
             qy = squeeze(rear_quat(i,j,:,2));
             qz = squeeze(rear_quat(i,j,:,3));
             qw = squeeze(rear_quat(i,j,:,4));
-            Rx_x = 1 - 2*(qy.^2 + qz.^2);
-            Rx_z = 2*(qx.*qz - qy.*qw);
-            heading_rear(i,j,:) = atan2(Rx_z, Rx_x);
 
-            qx = squeeze(front_quat(i,j,:,1));
-            qy = squeeze(front_quat(i,j,:,2));
-            qz = squeeze(front_quat(i,j,:,3));
-            qw = squeeze(front_quat(i,j,:,4));
+            % ----- X-forward (original method)
             Rx_x = 1 - 2*(qy.^2 + qz.^2);
             Rx_z = 2*(qx.*qz - qy.*qw);
-            heading_front(i,j,:) = atan2(Rx_z, Rx_x);
+            heading_x = rad2deg(atan2(Rx_z, Rx_x));
+
+            % ----- Z-forward (new method)
+            Rz_x = 2*(qx.*qz + qy.*qw);
+            Rz_z = 1 - 2*(qx.^2 + qy.^2);
+            heading_z = rad2deg(atan2(Rz_x, Rz_z));
+
+            subplot(nP,nT,(i-1)*nT+j)
+            hold on
+            plot(heading_x,'b')
+            plot(heading_z,'r')
+            hold off
+
+            title(Phase_String(i) + " " + Trial_String(j))
+            legend('X-forward','Z-forward')
         end
     end
 
-    %% Compute roll angle from quaternion — Y-axis projected onto YZ plane
-    roll_rear  = zeros(nP, nT, maxPts);
-    roll_front = zeros(nP, nT, maxPts);
-
+    sgtitle('Raw Heading Comparison')
+   %% Compute heading angle (yaw) from quaternion
+    heading_rear  = zeros(nP, nT, maxPts);
+    heading_front = zeros(nP, nT, maxPts);
+    
     for i = 1:nP
         for j = 1:nT
             if ~file_loaded(i,j), continue, end
-
+    
             qx = squeeze(rear_quat(i,j,:,1));
             qy = squeeze(rear_quat(i,j,:,2));
             qz = squeeze(rear_quat(i,j,:,3));
             qw = squeeze(rear_quat(i,j,:,4));
-            Ry_y = 1 - 2*(qx.^2 + qz.^2);
-            Ry_z = 2*(qy.*qz + qx.*qw);
-            roll_rear(i,j,:) = atan2(Ry_z, Ry_y);
-
+    
+            qx_f = squeeze(front_quat(i,j,:,1));
+            qy_f = squeeze(front_quat(i,j,:,2));
+            qz_f = squeeze(front_quat(i,j,:,3));
+            qw_f = squeeze(front_quat(i,j,:,4));
+    
+            if strcmpi(cfg.yaw_mode, "x")
+                % X-forward
+                Rx_x = 1 - 2*(qy.^2 + qz.^2);
+                Rx_z = 2*(qx.*qz - qy.*qw);
+                heading_rear(i,j,:) = atan2(Rx_z, Rx_x);
+    
+                Rx_x = 1 - 2*(qy_f.^2 + qz_f.^2);
+                Rx_z = 2*(qx_f.*qz_f - qy_f.*qw_f);
+                heading_front(i,j,:) = atan2(Rx_z, Rx_x);
+            else
+                % Z-forward
+                Rz_x = 2*(qx.*qz + qy.*qw);
+                Rz_z = 1 - 2*(qx.^2 + qy.^2);
+                heading_rear(i,j,:) = atan2(Rz_x, Rz_z);
+    
+                Rz_x = 2*(qx_f.*qz_f + qy_f.*qw_f);
+                Rz_z = 1 - 2*(qx_f.^2 + qy_f.^2);
+                heading_front(i,j,:) = atan2(Rz_x, Rz_z);
+            end
+        end
+    end
+    %% Compute roll angle from quaternion — X-axis projected onto XY plane
+    roll_rear  = zeros(nP, nT, maxPts);
+    roll_front = zeros(nP, nT, maxPts);
+    
+    for i = 1:nP
+        for j = 1:nT
+            if ~file_loaded(i,j), continue, end
+    
+            qx = squeeze(rear_quat(i,j,:,1));
+            qy = squeeze(rear_quat(i,j,:,2));
+            qz = squeeze(rear_quat(i,j,:,3));
+            qw = squeeze(rear_quat(i,j,:,4));
+    
+            Rx_x = 1 - 2*(qy.^2 + qz.^2);
+            Rx_y = 2*(qx.*qy + qz.*qw);
+            roll_rear(i,j,:) = atan2(Rx_y, Rx_x);
+    
             qx = squeeze(front_quat(i,j,:,1));
             qy = squeeze(front_quat(i,j,:,2));
             qz = squeeze(front_quat(i,j,:,3));
             qw = squeeze(front_quat(i,j,:,4));
-            Ry_y = 1 - 2*(qx.^2 + qz.^2);
-            Ry_z = 2*(qy.*qz + qx.*qw);
-            roll_front(i,j,:) = atan2(Ry_z, Ry_y);
+    
+            Rx_x = 1 - 2*(qy.^2 + qz.^2);
+            Rx_y = 2*(qx.*qy + qz.*qw);
+            roll_front(i,j,:) = atan2(Rx_y, Rx_x);
         end
     end
 
     %% Angle between the two rigid bodies — yaw and roll
-    angle_between_yaw = wrapToPi(heading_front - heading_rear);
-    angle_between_yaw_deg = rad2deg(angle_between_yaw);
-
-    angle_between_roll = wrapToPi(roll_front - roll_rear);
-    angle_between_roll_deg = rad2deg(angle_between_roll);
+    angle_between_yaw_deg = zeros(nP, nT, maxPts);
+    angle_between_roll_deg = zeros(nP, nT, maxPts);
+    
+    for i = 1:nP
+        for j = 1:nT
+            if ~file_loaded(i,j), continue, end
+    
+            % Front relative to rear: q_rel = q_front * conj(q_rear)
+            qfr = squeeze(front_quat(i,j,1:Length(i,j),:));
+            qrr = squeeze(rear_quat(i,j,1:Length(i,j),:));
+    
+            qrel = zeros(Length(i,j), 4);
+            for k = 1:Length(i,j)
+                qrel(k,:) = quatmultiply(qfr(k,:), quatinv(qrr(k,:)));
+            end
+    
+            qx = qrel(:,1);
+            qy = qrel(:,2);
+            qz = qrel(:,3);
+            qw = qrel(:,4);
+    
+            % Yaw from relative quaternion
+            yaw_rad = atan2(2*(qw.*qz + qx.*qy), 1 - 2*(qy.^2 + qz.^2));
+            angle_between_yaw_deg(i,j,1:Length(i,j)) = rad2deg(yaw_rad);
+    
+            % Roll from relative quaternion
+            roll_rad = atan2(2*(qw.*qx + qy.*qz), 1 - 2*(qx.^2 + qy.^2));
+            angle_between_roll_deg(i,j,1:Length(i,j)) = rad2deg(roll_rad);
+        end
+    end
 
     %% Smooth angle data (used for trimming)
     smooth_window_angle = 30;
@@ -184,8 +281,13 @@ function run_quaternion_analysis(cfg)
         for j = 1:nT
             if ~file_loaded(i,j), continue, end
             L = Length(i,j);
-            yaw_smooth(i,j,1:L)  = movmean(squeeze(angle_between_yaw_deg(i,j,1:L)),  smooth_window_angle, 'omitnan');
-            roll_smooth(i,j,1:L) = movmean(squeeze(angle_between_roll_deg(i,j,1:L)), smooth_window_angle, 'omitnan');
+    
+            yaw_raw  = squeeze(wrapToPi(heading_front(i,j,1:L) - heading_rear(i,j,1:L)));
+            yaw_raw  = unwrap(yaw_raw);
+            roll_raw  = squeeze(wrapToPi(roll_front(i,j,1:L) - roll_rear(i,j,1:L)));
+    
+            yaw_smooth(i,j,1:L)  = rad2deg(movmean(yaw_raw, smooth_window_angle, 'omitnan'));
+            roll_smooth(i,j,1:L) = rad2deg(movmean(roll_raw, smooth_window_angle, 'omitnan'));
         end
     end
 
@@ -240,7 +342,7 @@ function run_quaternion_analysis(cfg)
 
             title(Phase_String(i) + " " + Trial_String(j))
             xlabel('time / s')
-            ylabel('Theta yaw (deg)')
+            ylabel('θ yaw (deg)')
             grid on
         end
     end
@@ -276,7 +378,7 @@ function run_quaternion_analysis(cfg)
 
             title(Phase_String(i) + " " + Trial_String(j))
             xlabel('time / s')
-            ylabel('Theta roll (deg)')
+            ylabel('θ roll (deg)')
             grid on
         end
     end
@@ -356,11 +458,15 @@ function run_quaternion_analysis(cfg)
             tt_trim  = squeeze(t(i,j,s:e));
             ang_trim = squeeze(yaw_zeroed(i,j,s:e));
             tt_trim  = tt_trim - tt_trim(1);
+            
+            % Remove baseline drift
+            p = polyfit(tt_trim, ang_trim, 1);
+            ang_trim = ang_trim - polyval(p, tt_trim);
 
             plot(tt_trim, ang_trim, 'k')
             title(Phase_String(i) + " " + Trial_String(j))
             xlabel('time from start / s')
-            ylabel('Theta yaw (deg)')
+            ylabel('θ yaw (deg)')
             grid on
         end
     end
@@ -387,11 +493,15 @@ function run_quaternion_analysis(cfg)
             tt_trim  = squeeze(t(i,j,s:e));
             ang_trim = squeeze(roll_zeroed(i,j,s:e));
             tt_trim  = tt_trim - tt_trim(1);
+            
+            % Remove baseline drift
+            p = polyfit(tt_trim, ang_trim, 1);
+            ang_trim = ang_trim - polyval(p, tt_trim);
 
             plot(tt_trim, ang_trim, 'k')
             title(Phase_String(i) + " " + Trial_String(j))
             xlabel('time from start / s')
-            ylabel('Theta roll (deg)')
+            ylabel('θ roll (deg)')
             grid on
         end
     end

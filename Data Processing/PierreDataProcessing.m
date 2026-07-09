@@ -143,7 +143,7 @@ for i = 1:nP
         hold off
     end
 end
-sgtitle("Pierre Sand Start and End")
+sgtitle("Double Spine Sand Start and End")
 
 %% Clip data
 valid_lengths = (end_frame - start);
@@ -213,7 +213,7 @@ for i = 1:nP
         hold off
     end
 end
-sgtitle("Pierre Sand Rear Displacement vs. Time")
+sgtitle("Double Spine Sand Rear Displacement vs. Time")
 lgd = legend('X', 'Y', 'Z', 'total dist', 'Orientation', 'horizontal');
 lgd.Units = 'normalized';
 lgd.Position = [0.4, 0.02, 0.2, 0.02];
@@ -239,7 +239,7 @@ for i = 1:nP
         hold off
     end
 end
-sgtitle("Pierre Sand Front Displacement vs. Time")
+sgtitle("Double Spine Sand Front Displacement vs. Time")
 lgd = legend('X', 'Y', 'Z', 'total dist', 'Orientation', 'horizontal');
 lgd.Units = 'normalized';
 lgd.Position = [0.4, 0.02, 0.2, 0.02];
@@ -314,7 +314,7 @@ xticks(1:nP)
 xticklabels(Phase_String)
 xlabel('Coordination Type')
 ylabel('Step Length (cm)')
-title("Pierre Sand Average Step Length by Phase")
+title("Double Spine Sand Average Step Length by Phase")
 ylim([-1 11])
 
 disp(" ")

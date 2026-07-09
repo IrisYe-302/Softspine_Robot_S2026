@@ -44,8 +44,8 @@ int directions[]={1,-1,-1,1};
 int leg_offset[]={0,90,-90,90};
 int gait[]={0,180,0,180}; // diagonally alternating
 
-float cycle_period = 2; // in seconds... syncs legs with spine
-float spine_timing_offset = cycle_period*(3.0/4.0); // T/4 for left front leg down & spine arching left (destructive), 3T/4 for left front leg down and spine arching right (constructive)
+float cycle_period = 1; // in seconds... syncs legs with spine
+float spine_timing_offset = cycle_period*(1.0/4.0); // T/4 for left front leg down & spine arching left (destructive), 3T/4 for left front leg down and spine arching right (constructive)
 float spine_magnitude = 106, spine_center = 160;
 float servo6_timing_offset = -cycle_period*0.01;
 

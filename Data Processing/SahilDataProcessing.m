@@ -118,7 +118,7 @@ for i = 1:nP
         hold off
     end
 end
-sgtitle("Sahil Sand Start")
+sgtitle("Single Spine Sand Start")
 
 %% Clip data (per-trial: full start-to-end-of-trial range)
 rear_x_clipped  = cell(nP, nT);
@@ -187,7 +187,7 @@ for i = 1:nP
         hold off
     end
 end
-sgtitle("Sahil Sand Rear Displacement vs. Time")
+sgtitle("Single Spine Sand Rear Displacement vs. Time")
 lgd = legend('X', 'Y', 'Z', 'total dist', 'Orientation', 'horizontal');
 lgd.Units = 'normalized';
 lgd.Position = [0.4, 0.02, 0.2, 0.02];
@@ -213,7 +213,7 @@ for i = 1:nP
         hold off
     end
 end
-sgtitle("Sahil Sand Front Displacement vs. Time")
+sgtitle("Single Spine Sand Front Displacement vs. Time")
 lgd = legend('X', 'Y', 'Z', 'total dist', 'Orientation', 'horizontal');
 lgd.Units = 'normalized';
 lgd.Position = [0.4, 0.02, 0.2, 0.02];
@@ -288,7 +288,7 @@ xticks(1:nP)
 xticklabels(Phase_String)
 xlabel('Coordination Type')
 ylabel('Step Length (cm)')
-title("Sahil Sand Average Step Length by Phase")
+title("Single Spine Sand Average Step Length by Phase")
 ylim([-2 11])
 
 disp(" ")

@@ -478,7 +478,7 @@ for i = 1:nP
 end
 
 disp(" ")
-disp('Penetration depth and modeled step length without spine actuation per phase (Granular only):')
+disp('Penetration depth and modeled step length without spine actuation (Granular):')
 for i = 1:nP
     if isnan(d_phase(k_granular,i))
         disp(Phase_String(i) + ": no data")
